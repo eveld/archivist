@@ -1,1 +1,2 @@
 Archivist
+.DS_Store
