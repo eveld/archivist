@@ -1,2 +1,2 @@
-Archivist
-.DS_Store
+# Archivist
+Archive Twitch chat messages.
