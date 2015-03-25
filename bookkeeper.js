@@ -21,7 +21,7 @@ Bookkeeper.prototype.getSettings = function(name, callback) {
 	callback({
 		name: 'botnics',
 		version: 3,
-		auth: 'oauth:voy0mtsh0nxizt75igwdet7ectzhdi'
+		auth: null
 	});
 };
 

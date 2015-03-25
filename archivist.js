@@ -1,12 +1,17 @@
 /* jshint node: true */
 'use strict';
 
+// Events.
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
+
+// IRC.
 var factory = require('irc-factory');
 var api = new factory.Api();
 var client = {};
-var current = {};
+
+// Message meta.
+var meta = {};
 
 /**
  * Archivist connects to twitch chat and collects all chat messages.
@@ -18,10 +23,7 @@ var Archivist = function() {
 	// Wait for a registered message to send the client version to twitch chat.
 	api.hookEvent('archivist', 'registered', function onRegistered(message) {
 		archivist.setClientVersion(archivist.version);
-		archivist.joinChannel('#massansc');
-		archivist.joinChannel('#aphromoo');
-		archivist.joinChannel('#steel_tv');
-		archivist.joinChannel('#link');
+		archivist.joinChannel('#imaqtpie');
 	});
 
 	// Parse all incoming chat messages.
@@ -48,14 +50,18 @@ Archivist.prototype.configure = function(settings) {
  * Connect to twitch chat.
  */
 Archivist.prototype.connect = function() {
-	client = api.createClient('archivist', {
-		nick: this.name,
-		user: this.name,
-		realname: this.name,
-		server: 'irc.twitch.tv',
-		port: 6667,
-		password: this.auth
-	});
+	if (this.name && this.version && this.auth) {
+		client = api.createClient('archivist', {
+			nick: this.name,
+			user: this.name,
+			realname: this.name,
+			server: 'irc.twitch.tv',
+			port: 6667,
+			password: this.auth
+		});
+	} else {
+		throw new Error('Archivist is not configured');
+	}
 };
 
 /**
@@ -99,29 +105,26 @@ Archivist.prototype.leaveChannel = function(channel) {
  */
 Archivist.prototype.parseMessage = function(message) {
 	// If it is not a normal chat message.
-	if(message.nickname === 'jtv') {
-		if(message.message.indexOf('USERCOLOR') === 0) {
-			current.color = this.getUserColor(message);
+	if (message.nickname === 'jtv') {
+		if (message.message.indexOf('USERCOLOR') === 0) {
+			meta.color = this.getUserColor(message);
+		} else if (message.message.indexOf('EMOTESET') === 0) {
+			meta.emotesets = this.getEmoteSet(message);
+		} else if (message.message.indexOf('SPECIALUSER') === 0) {
+			meta.level = this.getSpecialUser(message);
 		}
-		else if(message.message.indexOf('EMOTESET') === 0) {
-			current.emotesets = this.getEmoteSet(message);
-		}
-		else if(message.message.indexOf('SPECIALUSER') === 0) {
-			current.level = this.getSpecialUser(message);
-		}
-	}
-	else if(message.target !== this.name) {
+	} else if (message.target !== this.name) {
 		this.emit('message', {
-			emotesets: current.emotesets,
-			color: current.color,
-			level: current.level,
+			emotesets: meta.emotesets,
+			color: meta.color,
+			level: meta.level,
 			timestamp: Date.now(),
 			user: message.nickname,
 			channel: message.target,
 			message: message.message
 		});
 
-		current = {};
+		meta = {};
 	}
 	// We don't care about other types of messages.
 };
