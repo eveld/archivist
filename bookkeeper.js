@@ -11,11 +11,26 @@ var etcd = require('etcd');
 // 	port: 4001
 // });
 
+/**
+ * Bookkeeper connects to ectd and watches and gathers information for its clients.
+ * @constructor
+ */
 var Bookkeeper = function() {
 	EventEmitter.call(this);
 };
 util.inherits(Bookkeeper, EventEmitter);
 
+/**
+ * Get settings for a client from etcd.
+ * @param {string} name The name of the client to get the settings for.
+ * @param {Function} callback The function to call when the settings have been retrieved.
+ * @return {Object} Settings for the client.
+ *
+ * @example
+ * bookkeeper.getSettings('myservice', function(settings) {
+ *   // Do something with settings.
+ * });
+ */
 Bookkeeper.prototype.getSettings = function(name, callback) {
 	//etcd.get(path.join(name + '/settings'), callback);
 	callback({

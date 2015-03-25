@@ -1,3 +1,5 @@
 node_modules
-.auth
+docs
 npm-debug.log
+.auth
+.DS_Store

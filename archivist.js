@@ -1,6 +1,18 @@
 /* jshint node: true */
 'use strict';
 
+/**
+ * @event Archivist#message
+ * @type {Object}
+ * @property {Array} emotesets - A list of emotesets the user has access to.
+ * @property {string} color - The color of the message.
+ * @property {string} level - The level of the user.
+ * @property {long} timestamp - The timestamp when the message was sent.
+ * @property {string} user - The user that sent the message.
+ * @property {string} channel - The channel the message was sent to.
+ * @property {string} message - The contents of the message.
+ */
+
 // Events.
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
@@ -15,6 +27,7 @@ var meta = {};
 
 /**
  * Archivist connects to twitch chat and collects all chat messages.
+ * @constructor
  */
 var Archivist = function() {
 	EventEmitter.call(this);
@@ -37,6 +50,13 @@ util.inherits(Archivist, EventEmitter);
  * Configure Archivist.
  * @param {Object} settings The settings for the twitch client.
  * @return {Object} The Archivist instance.
+ *
+ * @example
+ * archivist.configure({
+ *   name: 'chatbot',
+ *   version: 3,
+ *   auth: 'oauth:mysecrettoken'
+ * });
  */
 Archivist.prototype.configure = function(settings) {
 	this.name = settings.name;
@@ -48,6 +68,9 @@ Archivist.prototype.configure = function(settings) {
 
 /**
  * Connect to twitch chat.
+ *
+ * @example
+ * archivist.connect();
  */
 Archivist.prototype.connect = function() {
 	if (this.name && this.version && this.auth) {
@@ -67,6 +90,9 @@ Archivist.prototype.connect = function() {
 /**
  * Set the twitch chat client version.
  * @param {int} version The client version to use.
+ *
+ * @example
+ * archivist.setClientVersion(3);
  */
 Archivist.prototype.setClientVersion = function(version) {
 	client.irc.raw('twitchclient ' + version);
@@ -75,6 +101,9 @@ Archivist.prototype.setClientVersion = function(version) {
 /**
  * Join a twitch channel.
  * @param {string} channel The channel to join.
+ *
+ * @example
+ * archivist.joinChannel('#mytwitchchannel');
  */
 Archivist.prototype.joinChannel = function(channel) {
 	client.irc.join(channel);
@@ -83,6 +112,9 @@ Archivist.prototype.joinChannel = function(channel) {
 /**
  * Leave a twitch channel.
  * @param {string} channel The channel to leave.
+ *
+ * @example
+ * archivist.leaveChannel('#mytwitchchannel');
  */
 Archivist.prototype.leaveChannel = function(channel) {
 	client.irc.part(channel);
@@ -93,25 +125,28 @@ Archivist.prototype.leaveChannel = function(channel) {
  * @param {string} message The message to parse.
  * @fires Archivist#message
  *
- * @event Archivist#message
- * @type {Object}
- * @property {Array} emotesets - A list of emotesets the user has access to.
- * @property {string} color - The color of the message.
- * @property {string} level - The level of the user.
- * @property {long} timestamp - The timestamp when the message was sent.
- * @property {string} user - The user that sent the message.
- * @property {string} channel - The channel the message was sent to.
- * @property {string} message - The contents of the message.
+ * @example
+ * archivist.parseMessage({
+ *   nickname: 'someuser',
+ *   username: 'someuser',
+ *   hostname: 'someuser.tmi.twitch.tv',
+ *   target: '#mytwitchchannel',
+ *   message: 'I am saying something very cool!',
+ *   time: Wed Mar 25 2015 16:09:45 GMT+0100 (CET),
+ *   raw: ':someuser!someuser@someuser.tmi.twitch.tv PRIVMSG #mytwitchchannel :I am saying something very cool!'
+ * });
  */
 Archivist.prototype.parseMessage = function(message) {
+	console.log(message);
+
 	// If it is not a normal chat message.
 	if (message.nickname === 'jtv') {
 		if (message.message.indexOf('USERCOLOR') === 0) {
-			meta.color = this.getUserColor(message);
+			meta.color = this.getUserColor(message.message);
 		} else if (message.message.indexOf('EMOTESET') === 0) {
-			meta.emotesets = this.getEmoteSet(message);
+			meta.emotesets = this.getEmoteSet(message.message);
 		} else if (message.message.indexOf('SPECIALUSER') === 0) {
-			meta.level = this.getSpecialUser(message);
+			meta.level = this.getSpecialUser(message.message);
 		}
 	} else if (message.target !== this.name) {
 		this.emit('message', {
@@ -133,9 +168,13 @@ Archivist.prototype.parseMessage = function(message) {
  * Grab the user color from a message.
  * @param {string} message The message to get the user color from.
  * @return {string} The user color as hex value e.g. #FFFFFF.
+ *
+ * @example
+ * // Returns #B22222
+ * archivist.getUserColor('USERCOLOR someuser #B22222');
  */
 Archivist.prototype.getUserColor = function(message) {
-	var parts = message.message.split(' ');
+	var parts = message.split(' ');
 	return parts[2];
 };
 
@@ -143,9 +182,13 @@ Archivist.prototype.getUserColor = function(message) {
  * Grab the user emote set from a message.
  * @param {string} message The message to get the user emote set from.
  * @return {Array} A list of emote sets.
+ *
+ * @example
+ * // Returns [72, 3419]
+ * archivist.getEmoteSet('EMOTESET someuser [72,3419]');
  */
 Archivist.prototype.getEmoteSet = function(message) {
-	var parts = message.message.split(' ');
+	var parts = message.split(' ');
 	var channels = parts[2].substring(1, parts[2].length - 1);
 	return channels.split(',');
 };
@@ -154,9 +197,13 @@ Archivist.prototype.getEmoteSet = function(message) {
  * Grab the user level from a message.
  * @param {string} message The message to get the user level from.
  * @return {string} The user level.
+ *
+ * @example
+ * // Returns subscriber
+ * archivist.getSpecialUser('SPECIALUSER someuser subscriber');
  */
 Archivist.prototype.getSpecialUser = function(message) {
-	var parts = message.message.split(' ');
+	var parts = message.split(' ');
 	return parts[2];
 };
 
